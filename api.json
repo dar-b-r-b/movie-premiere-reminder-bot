@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "apis": [
+    {
+      "identifier": "kinopoiskdev",
+      "source": "@kinopoiskdev/v1.0#1760q18lqipkfx3",
+      "integrity": "sha512-6LrBnAMdjUTMB3NbqIjLB3Hmv22V0Bl25m5W1rKAs2Bww6VhneEfuB9nwc2l2gSSkHYOAQV7gQmhfEkOn2Z2NQ==",
+      "installerVersion": "6.1.2"
+    }
+  ]
+}
