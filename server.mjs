@@ -63,12 +63,16 @@ bot.on("message", async (msg) => {
 
   if (msg.text.startsWith("/")) return;
 
-  if (isNaN(msg.text)) {
+  let inputLink = msg.text.split("/");
+  let inputMovieId = inputLink[inputLink.length - 2];
+
+  if (isNaN(inputMovieId)) {
     bot.sendMessage(chatId, "Некорректный ID");
     return;
   }
+
   const copyMovie = await Movie.findOne({
-    movieId: msg.text,
+    movieId: inputMovieId,
   }).exec();
   if (copyMovie) {
     bot.sendMessage(chatId, "Данный фильм уже есть в бд");
@@ -79,7 +83,7 @@ bot.on("message", async (msg) => {
 
   try {
     moviePremieres = await kinopoisk.movieController_findOneV1_4({
-      id: msg.text,
+      id: inputMovieId,
     });
   } catch (err) {
     console.log(err.data.message);
@@ -97,6 +101,10 @@ bot.on("message", async (msg) => {
   let message = null;
 
   if (formatPremiereDate) {
+    if (formatPremiereDate < new Date()) {
+      bot.sendMessage(chatId, `${moviePremieres.data.name} уже вышел в прокат`);
+      return;
+    }
     message = `${
       moviePremieres.data.name
     } выйдет в России ${formatPremiereDate.toLocaleDateString()}. За три дня до премьеры вам придет уведомление`;
@@ -106,7 +114,7 @@ bot.on("message", async (msg) => {
   }
 
   await Movie.create({
-    movieId: Number(msg.text),
+    movieId: Number(inputMovieId),
     name: moviePremieres.data.name,
     premiere: premiereDate,
     isNotificated: false,
