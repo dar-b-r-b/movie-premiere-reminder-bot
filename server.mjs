@@ -7,9 +7,10 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const bot = new telegramBot(process.env.BOT_API_KEY, { polling: true });
-
+//подключение к бд
 await connect(process.env.DATA_BASE_URL);
 
+// создание схемы бд
 const movieSchema = new Schema({
   movieId: Number,
   name: String,
@@ -18,22 +19,25 @@ const movieSchema = new Schema({
   chatId: Number,
 });
 
-const Movie = model("MoviesInformation", movieSchema);
+const Movie = model("MovieInformations", movieSchema);
 
 kinopoisk.auth(process.env.KINOPOISK_API_KEY);
 
-const today = new Date();
-today.setDate(today.getDate() + 3);
-today.setHours(3, 0, 0, 0);
-
-//В ровно каждые два часа с 8:00 до 23:00
+//срабатывает каждые два часа с 8:00 до 23:00
 cron.schedule("0 8-23/2 * * *", async () => {
+  // ищет фильмы у которых дата премьеры через три дня
+  const today = new Date();
+  today.setDate(today.getDate() + 3);
+  today.setHours(3, 0, 0, 0);
+
   console.log("Я сработал", new Date());
 
   let moviePremieres = await Movie.find({
     isNotificated: false,
     premiere: { $lte: today },
   }).exec();
+
+  // отправляет уведомления по найденным фильмам
   moviePremieres.forEach(async (movie) => {
     bot.sendMessage(
       movie.chatId,
@@ -46,10 +50,12 @@ cron.schedule("0 8-23/2 * * *", async () => {
   });
 });
 
+// по команде /all выводит список фильмов, по которым еще не было уведомления
 bot.onText(/\/all/, async (msg) => {
   let allMoviePremieres = await Movie.find({
     isNotificated: false,
   }).exec();
+
   const messageAllMoviePremieres = allMoviePremieres
     .toSorted((a, b) => a.premiere - b.premiere)
     .map((m) => `${m.name} выйдет ${m.premiere.toLocaleDateString()}`)
@@ -63,6 +69,7 @@ bot.on("message", async (msg) => {
 
   if (msg.text.startsWith("/")) return;
 
+  // достает из ссылки id фильма
   let inputLink = msg.text.split("/");
   let inputMovieId = inputLink[inputLink.length - 2];
 
@@ -71,14 +78,17 @@ bot.on("message", async (msg) => {
     return;
   }
 
+  // ищет возможные копии фильма
   const copyMovie = await Movie.findOne({
     movieId: inputMovieId,
   }).exec();
+
   if (copyMovie) {
     bot.sendMessage(chatId, "Данный фильм уже есть в бд");
     return;
   }
 
+  //делает запрос на кинопоиск с введенным id фильма
   let moviePremieres = null;
 
   try {
@@ -92,27 +102,25 @@ bot.on("message", async (msg) => {
     return;
   }
 
+  //возможные варианты даты премьеры
   const premiereDate =
     moviePremieres.data.premiere.russia ??
     moviePremieres.data.premiere.world ??
     moviePremieres.data.premiere.digital;
 
   const formatPremiereDate = premiereDate ? new Date(premiereDate) : null;
-  let message = null;
 
   if (formatPremiereDate) {
     if (formatPremiereDate < new Date()) {
       bot.sendMessage(chatId, `${moviePremieres.data.name} уже вышел в прокат`);
       return;
     }
-    message = `${
-      moviePremieres.data.name
-    } выйдет в России ${formatPremiereDate.toLocaleDateString()}. За три дня до премьеры вам придет уведомление`;
   } else {
     bot.sendMessage(chatId, "Дата премьеры неизвестна, приходите позже");
     return;
   }
 
+  // создание записи в бд
   await Movie.create({
     movieId: Number(inputMovieId),
     name: moviePremieres.data.name,
@@ -120,6 +128,10 @@ bot.on("message", async (msg) => {
     isNotificated: false,
     chatId: chatId,
   });
+
+  const message = `${
+    moviePremieres.data.name
+  } выйдет в России ${formatPremiereDate.toLocaleDateString()}. За три дня до премьеры вам придет уведомление`;
 
   bot.sendMessage(chatId, message);
 });
