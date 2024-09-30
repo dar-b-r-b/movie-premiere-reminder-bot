@@ -9,7 +9,9 @@ export async function getAllPremieres(msg) {
 
   const messageAllMoviePremieres = allMoviePremieres
     .toSorted((a, b) => a.premiere - b.premiere)
-    .map((m) => `${m.name} выйдет ${m.premiere.toLocaleDateString()}`)
+    .map(
+      (m) => `${m.name} выйдет ${m.premiere.toLocaleDateString() ?? "пока хз"}`
+    )
     .join(",\n\n");
 
   bot.sendMessage(msg.chat.id, messageAllMoviePremieres);

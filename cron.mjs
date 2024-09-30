@@ -1,5 +1,6 @@
 import { Movie } from "./model.mjs";
 import { bot } from "./bot-telegram.mjs";
+import kinopoisk from "@api/kinopoiskdev";
 
 export async function notifyAboutPremieres() {
   // ищет фильмы у которых дата премьеры через три дня
