@@ -10,7 +10,7 @@ export async function getAllPremieres(msg) {
   const messageAllMoviePremieres = allMoviePremieres
     .toSorted((a, b) => a.premiere - b.premiere)
     .map(
-      (m) => `${m.name} выйдет ${m.premiere.toLocaleDateString() ?? "пока хз"}`
+      (m) => `${m.name} выйдет ${m.premiere?.toLocaleDateString() ?? "пока хз"}`
     )
     .join(",\n\n");
 
